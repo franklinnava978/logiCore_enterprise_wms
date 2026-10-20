@@ -1,91 +1,60 @@
 # lenguaje python
 
-/app/applet/
-├── backend/
-│   ├── main.py               # Aplicación principal FastAPI (CORS, Middlewares, Routers)
-│   ├── database.py           # Conexión a Base de Datos / Modelos de Datos en memoria o PostgreSQL
-│   ├── models.py             # Esquemas Pydantic (Validación estricta para O.C., Recepciones, Kardex)
-│   ├── routers/
-│   │   ├── warehouses.py     # Endpoints de Bodegas, Zonas y Ubicaciones
-│   │   ├── products.py       # Catálogo de Productos y Proveedores
-│   │   ├── receipts.py       # Recepciones, OCR de O.C. (Gemini SDK) y validación de andén
-│   │   └── inventory.py      # Kardex transaccional y balance de stock
-│   └── requirements.txt      # Dependencias Python (fastapi, uvicorn, pydantic, google-genai, etc.)
+wms-backend/
+├── app/
+│   ├── main.py                  # Punto de entrada de la aplicación FastAPI
+│   ├── core/                    # Configuraciones globales
+│   │   ├── config.py            # Carga de variables de entorno (.env)
+│   │   ├── database.py          # Configuración del motor PostgreSQL y sesiones
+│   │   ├── security.py          # Hashes de contraseñas, encriptación y JWT
+│   │   └── exceptions.py        # Manejadores de errores globales (para devolver HTTP 400/500)
+│   │
+│   ├── api/                     # Capa de Presentación (Endpoints REST)
+│   │   ├── dependencies.py      # Inyección de dependencias (ej. get_db_session, get_current_user)
+│   │   └── v1/                  # Rutas versionadas
+│   │       ├── auth.py          # Autenticación y login
+│   │       ├── warehouses.py    # Maestros de bodegas y ubicaciones
+│   │       ├── receiving.py     # Endpoints de órdenes de compra y recepciones
+│   │       ├── dispatch.py      # Endpoints de órdenes de despacho y picking
+│   │       ├── inventory.py     # Consultas de stock, kardex y movimientos
+│   │       └── integrations.py  # Endpoints exclusivos para subir Excel/CSV del ERP
+│   │
+│   ├── schemas/                 # Modelos Pydantic (Validación de entrada/salida y DTOs)
+│   │   ├── user.py              # Esquemas de creación y respuesta de usuarios
+│   │   ├── receiving.py         # Validaciones de cantidad esperada vs recibida
+│   │   ├── inventory.py         # Esquemas para mostrar trazabilidad
+│   │   └── erp_import.py        # Esquemas estrictos para las columnas del Excel
+│   │
+│   ├── models/                  # Modelos SQLAlchemy (Entidades de BD relacional)
+│   │   ├── base.py              # Base declarativa de SQLAlchemy
+│   │   ├── user.py              # Tabla users, roles, permissions
+│   │   ├── facility.py          # Tablas warehouses, sectors, locations
+│   │   ├── inbound.py           # Tablas purchase_orders, receipts, inbound_incidents
+│   │   ├── outbound.py          # Tablas dispatch_orders, dispatches, picking_tasks
+│   │   └── inventory.py         # Tablas inventory, inventory_movements, reservations
+│   │
+│   ├── services/                # Capa de Lógica de Negocio (El "corazón" del WMS)
+│   │   ├── receiving_srv.py     # Lógica: control de parciales, sobre-recepción y estados
+│   │   ├── dispatch_srv.py      # Lógica: reservas (hard allocation) y control de pendientes
+│   │   ├── inventory_srv.py     # Lógica: centralización de movimientos, prohibición de UPDATE directo
+│   │   └── erp_parser_srv.py    # ERP Integration Layer: Lee archivos, valida y transforma a schemas
+│   │
+│   └── utils/                   # Herramientas de infraestructura
+│       ├── file_storage.py      # Guarda el archivo en disco (y a futuro en AWS S3)
+│       └── barcode.py           # Utilidades para parsear y generar códigos de barras
 │
-├── src/                      # Frontend actual en React + TypeScript + Tailwind
-│   └── services/
-│       └── api.ts            # Cliente HTTP apuntando a /api/v1/* en el backend FastAPI
-
-
-# lenguaje typeScripts
-
-├── package.json              # Dependencias del proyecto (React, Vite, Tailwind CSS, Lucide, Recharts, Express)
-├── server.ts                 # Servidor Backend (API REST en Express con TypeScript y simulación DB/Kardex transaccional)
-├── vite.config.ts            # Configuración de Vite
-├── index.html                # Punto de entrada HTML (Meta tags, PWA y fuentes)
-├── tsconfig.json             # Configuración TypeScript
-└── src/
-    ├── main.tsx              # Punto de entrada React SPA
-    ├── App.tsx               # Componente principal de navegación y enrutamiento de vistas
-    ├── index.css             # Estilos globales y Tailwind CSS (@import "tailwindcss";)
-    │
-    ├── types/
-    │   └── wms.ts            # Interfaces y tipos TypeScript (Warehouse, Receipt, Product, StockBalance, Movement, etc.)
-    │
-    ├── services/
-    │   └── api.ts            # Cliente API REST para comunicación con el backend (server.ts)
-    │
-    ├── utils/
-    │   ├── formatters.ts     # Formateo de fechas, cantidades decimales, RUT y monedas
-    │   ├── ceramicCalculations.ts # Motor de cálculo de cerámica (m² <-> Cajas mediante factor de conversión)
-    │   ├── barcodeGenerator.ts # Generador de códigos de barras / EAN / QR
-    │   ├── labelPrinters.ts  # Configuración e impresión de etiquetas de bultos/pallets (LPN)
-    │   └── printHelper.ts    # Utilidades de impresión de reportes y actas de andén
-    │
-    └── components/
-        ├── layout/
-        │   ├── Sidebar.tsx   # Menú lateral operativo (con sección de carpeta de recepción y búsqueda)
-        │   └── Header.tsx    # Barra superior (Selector de bodegas, perfil de usuario, quick scan)
-        │
-        ├── dashboard/
-        │   └── DashboardView.tsx # Torre de Control con sistema de widgets personalizables (drag-and-drop y toggling)
-        │
-        ├── receiving/
-        │   ├── ReceivingView.tsx       # Módulo de Recepción (Carpeta de búsqueda, terminal de andén y validación)
-        │   ├── AttachPurchaseOrderModal.tsx # Adjuntar / OCR de Orden de Compra (PDF / Factura)
-        │   ├── ReceiptReportModal.tsx  # Acta de recepción oficial
-        │   └── LpnLabelsModal.tsx      # Generación de etiquetas LPN por pallet
-        │
-        ├── acopio/
-        │   └── AcopioPutawayView.tsx   # Gestión de zona de acopio y ejecución de tareas de Putaway
-        │
-        ├── picking/
-        │   └── PickingView.tsx         # Picking Operativo RF y armado de olas
-        │
-        ├── shipping/
-        │   └── ShippingPackingView.tsx # Consolidación de bultos, packing y despacho vehicular
-        │
-        ├── inventory/
-        │   ├── InventoryView.tsx       # Stock actual por ubicación y bodega
-        │   └── KardexView.tsx          # Libro mayor transaccional inmutable (Kardex)
-        │
-        ├── warehouses/
-        │   └── WarehouseHierarchyView.tsx # Jerarquía multi-bodega y pasillos/racks
-        │
-        ├── transfers/
-        │   └── TransfersView.tsx       # Transferencias internas entre ubicaciones/bodegas
-        │
-        ├── barcode/
-        │   └── BarcodeStudioView.tsx   # Estudio y pruebas de lectura de códigos de barras
-        │
-        ├── audit/
-        │   └── AuditLogView.tsx        # Auditoría y trazabilidad de acciones de usuarios
-        │
-        ├── reports/
-        │   └── ReportsView.tsx         # Reportes avanzados y exportación de datos
-        │
-        ├── users/
-        │   └── UsersRolesView.tsx      # Gestión de usuarios y control de acceso (RBAC)
-        │
-        └── config/
-            └── SystemConfigView.tsx    # Configuración de sistema, balanzas e impresoras termicas
+├── storage/                     # Directorio local estructurado para archivos adjuntos (Ignorado en Git)
+│   ├── erp_imports/             # Originales cargados del ERP
+│   └── evidence/                # Fotografías de incidencias (daños)
+│
+├── tests/                       # Pruebas automatizadas (Pytest)
+│   ├── api/                     # Pruebas de integración de endpoints
+│   └── services/                # Pruebas unitarias de reglas de negocio (ej. despachos parciales)
+│
+├── alembic/                     # Sistema de migraciones de base de datos
+│   ├── versions/                # Historial de cambios SQL
+│   └── env.py
+│
+├── requirements.txt             # Dependencias (fastapi, sqlalchemy, psycopg2-binary, pandas, etc.)
+├── .env                         # Variables de entorno (NO se sube a Git)
+└── .gitignore                   # Excluye venv/, .env, storage/, __pycache__/
