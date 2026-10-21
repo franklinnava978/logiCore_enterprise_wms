@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import os
 
 # Dependencias (Se asumen definidas en app/api/dependencies.py)
-# from app.api.dependencies import get_db, get_current_user
-
+from app.api.dependencies import get_db, get_current_user
+from app.models.user import User
 from app.models.incident import Incident
 from app.models.inbound import Attachment  # Usamos la tabla polimórfica ya creada
 from app.utils.file_storage import save_upload_file_safely

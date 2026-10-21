@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, s
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Dependencias (Asumimos que existen en api/dependencies.py)
-# from app.api.dependencies import get_db, get_current_user
-
+from app.api.dependencies import get_db, get_current_user
+from app.models.user import User
 from app.services.erp_parser_srv import ERPParserService
 from app.services.inbound_srv import InboundService
 from app.utils.file_storage import save_upload_file_safely
